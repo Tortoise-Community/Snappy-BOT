@@ -16,6 +16,7 @@ class Database:
         if self.pool:
             await self.pool.close()
 
+
 class PointsManager:
     def __init__(self, db: Database):
         self.db = db
@@ -64,13 +65,18 @@ class PointsManager:
         return row["points"]
 
     async def get_points(self, guild_id: int, user_id: int) -> int:
-        return await self.db.pool.fetchval(
-            "SELECT points FROM points WHERE guild_id = $1 AND user_id = $2",
-            guild_id,
-            user_id,
-        ) or 0
+        return (
+            await self.db.pool.fetchval(
+                "SELECT points FROM points WHERE guild_id = $1 AND user_id = $2",
+                guild_id,
+                user_id,
+            )
+            or 0
+        )
 
-    async def get_leaderboard(self, guild_id: int, min_points: int = 1, limit: int = 10):
+    async def get_leaderboard(
+        self, guild_id: int, min_points: int = 1, limit: int = 10
+    ):
         rows = await self.db.pool.fetch(
             """
             SELECT user_id, points
@@ -84,74 +90,3 @@ class PointsManager:
             limit,
         )
         return [(r["user_id"], r["points"]) for r in rows]
-
-
-class AFKManager:
-    def __init__(self, db: Database):
-        self.db = db
-
-    async def setup(self):
-        await self.db.pool.execute(
-            """
-            CREATE TABLE IF NOT EXISTS afk_status (
-                guild_id BIGINT NOT NULL,
-                user_id  BIGINT NOT NULL,
-                reason   TEXT,
-                until    TIMESTAMPTZ NOT NULL,
-                PRIMARY KEY (guild_id, user_id)
-            )
-            """
-        )
-
-    async def set_afk(
-        self,
-        guild_id: int,
-        user_id: int,
-        until: datetime,
-        reason: str | None = None,
-    ):
-        await self.db.pool.execute(
-            """
-            INSERT INTO afk_status (guild_id, user_id, reason, until)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (guild_id, user_id)
-            DO UPDATE SET reason = EXCLUDED.reason,
-                          until = EXCLUDED.until
-            """,
-            guild_id,
-            user_id,
-            reason,
-            until,
-        )
-
-    async def remove_afk(self, guild_id: int, user_id: int):
-        await self.db.pool.execute(
-            """
-            DELETE FROM afk_status
-            WHERE guild_id = $1 AND user_id = $2
-            """,
-            guild_id,
-            user_id,
-        )
-
-    async def get_afk(self, guild_id: int, user_id: int):
-        row = await self.db.pool.fetchrow(
-            """
-            SELECT reason, until
-            FROM afk_status
-            WHERE guild_id = $1 AND user_id = $2
-            """,
-            guild_id,
-            user_id,
-        )
-        return row
-
-    async def get_expired(self):
-        rows = await self.db.pool.fetch(
-            """
-            SELECT guild_id, user_id
-            FROM afk_status
-            WHERE until <= NOW()
-            """
-        )
-        return [(r["guild_id"], r["user_id"]) for r in rows]
