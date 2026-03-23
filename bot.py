@@ -8,7 +8,6 @@ from utils.embed_handler import simple_embed
 
 from constants import system_log_channel_id
 from utils.manager import (
-    AFKManager,
     PointsManager,
     Database,
 )
@@ -21,7 +20,6 @@ class MyBot(commands.Bot):
     def __init__(self):
         self.db = None
         self.points_manager = None
-        self.afk_manager = None
         self.build_version = None
         intents = discord.Intents.default()
         intents.members = True
@@ -38,16 +36,13 @@ class MyBot(commands.Bot):
         self.db = Database(DB_URL)
         await self.db.connect()
 
-        self.afk_manager = AFKManager(self.db)
         self.points_manager = PointsManager(self.db)
 
-        await self.afk_manager.setup()
         await self.points_manager.setup()
 
         # ---------- COGS ----------
         await self.load_extension("cogs.leaderboard")
         await self.load_extension("cogs.status")
-        await self.load_extension("cogs.afk")
         await self.load_extension("cogs.health_check")
 
         await self.tree.sync()
