@@ -9,7 +9,6 @@ from utils.embed_handler import simple_embed
 from constants import system_log_channel_id
 
 TOKEN = config("DISCORD_BOT_TOKEN")
-DB_URL = config("DB_URL")
 
 
 class MyBot(commands.Bot):
@@ -27,6 +26,7 @@ class MyBot(commands.Bot):
     async def setup_hook(self) -> None:
         # ---------- COGS ----------
         await self.load_extension("cogs.status")
+        await self.load_extension("cogs.games")
         await self.load_extension("cogs.health_check")
         await self.tree.sync()
         print("✅ Synced application commands")
