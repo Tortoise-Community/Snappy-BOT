@@ -10,7 +10,6 @@ class StatusCog(commands.Cog):
 
         self.statuses = [
             "watching Tortoise Community",
-            "solving Leetcode problems 👨‍💻",
         ]
 
         self.status_cycle = itertools.cycle(self.statuses)

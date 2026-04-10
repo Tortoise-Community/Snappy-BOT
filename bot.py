@@ -7,10 +7,6 @@ from discord.ext import commands
 from utils.embed_handler import simple_embed
 
 from constants import system_log_channel_id
-from utils.manager import (
-    PointsManager,
-    Database,
-)
 
 TOKEN = config("DISCORD_BOT_TOKEN")
 DB_URL = config("DB_URL")
@@ -22,10 +18,6 @@ class MyBot(commands.Bot):
         self.points_manager = None
         self.build_version = None
         intents = discord.Intents.default()
-        intents.members = True
-        intents.message_content = True
-        intents.messages = True
-        self.suppressed_deletes: set[int] = set()
 
         super().__init__(
             command_prefix="!",
@@ -33,18 +25,9 @@ class MyBot(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
-        self.db = Database(DB_URL)
-        await self.db.connect()
-
-        self.points_manager = PointsManager(self.db)
-
-        await self.points_manager.setup()
-
         # ---------- COGS ----------
-        await self.load_extension("cogs.leaderboard")
         await self.load_extension("cogs.status")
         await self.load_extension("cogs.health_check")
-
         await self.tree.sync()
         print("✅ Synced application commands")
 
