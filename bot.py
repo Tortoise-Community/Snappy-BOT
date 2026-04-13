@@ -13,10 +13,9 @@ TOKEN = config("DISCORD_BOT_TOKEN")
 
 class MyBot(commands.Bot):
     def __init__(self):
-        self.db = None
-        self.points_manager = None
         self.build_version = None
-        intents = discord.Intents.default()
+        intents = discord.Intents.none()
+        intents.guilds = True
 
         super().__init__(
             command_prefix="!",
@@ -24,7 +23,6 @@ class MyBot(commands.Bot):
         )
 
     async def setup_hook(self) -> None:
-        # ---------- COGS ----------
         await self.load_extension("cogs.status")
         await self.load_extension("cogs.games")
         await self.load_extension("cogs.health_check")

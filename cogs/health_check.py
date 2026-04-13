@@ -40,7 +40,7 @@ class HealthCheck(commands.Cog):
         self.app = web.Application()
         self.app.add_routes(
             [
-                web.get("/health", self.health),
+                # web.get("/health", self.health),
                 web.head("/ready", self.ready),
             ]
         )
@@ -51,62 +51,27 @@ class HealthCheck(commands.Cog):
         self.bot.loop.create_task(self._start_server())
 
 
-    def _is_rate_limited(self, request: web.Request) -> bool:
-        # Support reverse proxies
-        client_ip = (
-            request.headers.get("X-Forwarded-For", request.remote)
-            or "unknown"
-        )
-        # If multiple IPs are present, take the first
-        client_ip = client_ip.split(",")[0].strip()
-
-        now = datetime.utcnow()
-        window_start = now - self.rate_limit_window
-
-        timestamps = self.client_requests.get(client_ip, [])
-
-        timestamps = [t for t in timestamps if t > window_start]
-
-        if len(timestamps) >= self.max_requests:
-            self.client_requests[client_ip] = timestamps
-            return True
-
-        timestamps.append(now)
-        self.client_requests[client_ip] = timestamps
-        return False
-
-
-    async def health(self, request: web.Request) -> web.Response:
-        if self._is_rate_limited(request):
-            return web.json_response(
-                {
-                    "status": "rate_limited",
-                    "retry_after_minutes": constants.rate_limit_minutes,
-                },
-                status=429,
-            )
-
-        process = psutil.Process(os.getpid())
-        mem_mb = process.memory_info().rss / 1024 / 1024
-
-        data = {
-            "status": "ok",
-            "build_version": self.bot.build_version,
-            "uptime_seconds": int(time.time() - self.start_time),
-            "latency_ms": round(self.bot.latency * 1000, 2),
-            "guilds": len(self.bot.guilds),
-            "users": sum(g.member_count or 0 for g in self.bot.guilds),
-            "python_version": platform.python_version(),
-            "discord_py_version": discord.__version__,
-            "memory_mb": round(mem_mb, 2),
-            "pid": os.getpid(),
-        }
-
-        return web.json_response(data)
+    # async def health(self, request: web.Request) -> web.Response:
+    #
+    #     process = psutil.Process(os.getpid())
+    #     mem_mb = process.memory_info().rss / 1024 / 1024
+    #
+    #     data = {
+    #         "status": "ok",
+    #         "build_version": self.bot.build_version,
+    #         "uptime_seconds": int(time.time() - self.start_time),
+    #         "latency_ms": round(self.bot.latency * 1000, 2),
+    #         "guilds": len(self.bot.guilds),
+    #         "users": sum(g.member_count or 0 for g in self.bot.guilds),
+    #         "python_version": platform.python_version(),
+    #         "discord_py_version": discord.__version__,
+    #         "memory_mb": round(mem_mb, 2),
+    #         "pid": os.getpid(),
+    #     }
+    #
+    #     return web.json_response(data)
 
     async def ready(self, request: web.Request) -> web.Response:
-        if self._is_rate_limited(request):
-            return web.Response(text="RATE LIMITED", status=429)
 
         if self.bot.is_ready():
             return web.Response(text="READY", status=200)

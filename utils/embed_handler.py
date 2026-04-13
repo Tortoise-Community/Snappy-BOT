@@ -1,6 +1,9 @@
 from typing import Union
 import constants
-from discord import Embed, Color, Member, User
+from discord import Embed, Color, Member, User, Status
+from utils.misc import (
+    get_badges, get_join_pos, format_activity, get_device_status, format_date
+)
 
 def get_top_role_color(member: Union[Member, User], *, fallback_color) -> Color:
     """
@@ -129,4 +132,52 @@ def black_jack_embed(user: User, player, outcome: str = None, hidden: bool = Tru
         embed.description = "**Outcome:** It's a tie!"
     return embed
 
+def status_embed(ctx, member: Member) -> Embed:
+    """
+    Construct status embed for certain member.
+    Status will have info such as member device, online status, activity, roles etc.
+    :param ctx: context variable to get the member
+    :param member: member to get data from
+    :return: discord.Embed
+    """
+
+    color_dict = {
+        Status.online: Color.green(),
+        Status.offline: 0x000000,
+        Status.idle: Color.orange(),
+        Status.dnd: Color.red()
+    }
+
+    embed = Embed(title=str(member), color=color_dict[member.status])
+    embed.description = get_badges(member)
+    embed.set_thumbnail(url=member.display_avatar.url)
+
+    bot = constants.tick_no
+    nick = member.nick
+    join_pos = get_join_pos(ctx, member)
+    activities = ""
+
+    if member.bot:
+        bot = constants.tick_yes
+
+    if not nick:
+        nick = constants.tick_no
+
+    for activity in member.activities:
+
+        clean_activity = format_activity(activity)
+        activities += f"{clean_activity}\n"
+
+    embed.add_field(name=f"{constants.pin_emoji} General info",
+                    value=f"**Nick** : {nick}\n**Bot** : {bot}\n"
+                          f"**Join position** : {join_pos}")
+    embed.add_field(name=f"{constants.user_emoji} Status", value=get_device_status(member), inline=False)
+    embed.add_field(name="📆 Dates",
+                    value=f"**Join date** : {format_date(member.joined_at)}\n "
+                          f"**Creation Date** : {format_date(member.created_at)}",
+                    inline=False)
+
+    if not activities == "":
+        embed.add_field(name='Activities', value=activities, inline=False)
+    return embed
 
